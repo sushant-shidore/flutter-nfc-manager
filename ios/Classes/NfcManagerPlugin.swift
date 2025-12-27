@@ -479,6 +479,24 @@ public class NfcManagerPlugin: NSObject, FlutterPlugin, HostApiPigeon {
     }
   }
 
+  func iso15693ExtendedReadMultipleBlocks(handle: String, requestFlags: [Iso15693RequestFlagPigeon], blockNumber: Int64, numberOfBlocks: Int64, completion: @escaping (Result<[FlutterStandardTypedData], Error>) -> Void) {
+    guard let tag = cachedTags[handle] as? NFCISO15693Tag else {
+      completion(.failure(FlutterError(code: "tag_not_found", message: "You may have disable the session.", details: nil)))
+      return
+    }
+    if #available(iOS 13.0, *) {
+      tag.extendedReadMultipleBlocks(requestFlags: convert(requestFlags), blockRange: convert(blockNumber, numberOfBlocks)) { dataBlocks, error in
+        if let error = error {
+          completion(.failure(error))
+          return
+        }
+        completion(.success(dataBlocks.map { FlutterStandardTypedData(bytes: $0) }))
+      }
+    } else {
+      completion(.failure(FlutterError(code: "unavailable", message: "extendedReadMultipleBlocks requires iOS 13.0+", details: nil)))
+    }
+  }
+
   func iso15693WriteMultipleBlocks(handle: String, requestFlags: [Iso15693RequestFlagPigeon], blockNumber: Int64, numberOfBlocks: Int64, dataBlocks: [FlutterStandardTypedData], completion: @escaping (Result<Void, Error>) -> Void) {
     guard let tag = cachedTags[handle] as? NFCISO15693Tag else {
       completion(.failure(FlutterError(code: "tag_not_found", message: "You may have disable the session.", details: nil)))
